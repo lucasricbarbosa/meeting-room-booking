@@ -100,7 +100,12 @@ Rooms (admin): create and edit; no deletion — deactivate with `isActive = fals
 ```ts
 type ActionResult<T = void> =
   | { ok: true; data: T }
-  | { ok: false; code: ErrorCode; message: string; fieldErrors?: Record<string, string[]> };
+  | {
+      ok: false;
+      code: ErrorCode;
+      message: string;
+      fieldErrors?: Record<string, string[]>;
+    };
 ```
 
 - Rule violations are `DomainError`s (with `code`) thrown in `domain/`/`services/` and converted to `ActionResult` in the action.

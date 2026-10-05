@@ -5,6 +5,8 @@ import { defineConfig } from "vitest/config";
 process.env.TZ = "UTC";
 
 export default defineConfig({
+  // Resolves the "@/*" alias from tsconfig.json, so tests import like the app does.
+  resolve: { tsconfigPaths: true },
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],

@@ -19,6 +19,8 @@ Formato: decisão — motivo. Ao mudar uma decisão, edite aqui no mesmo PR.
 | Granularidade de horário            | UI em passos de 15 min; servidor aceita qualquer minuto                          | Não inventar regra que o enunciado não pede                                   |
 | Mensagem de conflito                | Mostra o horário ocupado, não quem reservou                                      | Evita vazamento de dados entre usuários                                       |
 | Acesso de não-admin a `/admin`      | Responde 404 (`notFound()`)                                                      | Não revela que a área existe                                                  |
+| "Trocar usuário" × "Sair"           | Trocar abre `/sign-in` mantendo a sessão; Sair apaga o cookie                    | Duas ações com efeitos distintos; trocar não obriga a sair antes              |
+| `/sign-in` com sessão ativa         | Mostra a lista com o usuário atual marcado, sem redirecionar                     | É o destino de "Trocar usuário"                                               |
 
 ## Técnica
 

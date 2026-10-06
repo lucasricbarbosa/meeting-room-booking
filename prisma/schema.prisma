@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ReservationStatus {
+  ACTIVE
+  CANCELLED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  role         Role          @default(USER)
+  createdAt    DateTime      @default(now())
+  reservations Reservation[]
+}
+
+model Room {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  capacity     Int
+  location     String?
+  description  String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  features     RoomFeature[]
+  reservations Reservation[]
+
+  @@index([isActive, capacity])
+}
+
+model Feature {
+  id    String        @id @default(cuid())
+  slug  String        @unique
+  name  String
+  rooms RoomFeature[]
+}
+
+model RoomFeature {
+  roomId    String
+  featureId String
+  room      Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, featureId])
+}
+
+model Reservation {
+  id          String            @id @default(cuid())
+  roomId      String
+  userId      String
+  title       String?
+  startsAt    DateTime
+  endsAt      DateTime
+  status      ReservationStatus @default(ACTIVE)
+  cancelledAt DateTime?
+  createdAt   DateTime          @default(now())
+  room        Room              @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([roomId, startsAt])
+  @@index([userId, startsAt])
+}

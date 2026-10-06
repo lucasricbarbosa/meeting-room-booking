@@ -41,17 +41,18 @@ Formato: decisão — motivo. Ao mudar uma decisão, edite aqui no mesmo PR.
 
 ## Técnica
 
-| Tema                 | Decisão                                                                                                            | Motivo                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| Backend              | Next.js full stack (Server Actions + camada de serviço), sem backend separado                                      | Sem consumidor externo; menos contrato duplicado e menos código para manter                     |
-| API REST             | Só `GET /api/health`                                                                                               | Não há cliente externo; serviços já isolados permitem expor REST depois                         |
-| Banco                | SQLite com migrations Prisma                                                                                       | Zero infraestrutura, roda no CI, sobe em 3 comandos                                             |
-| Concorrência         | Checagem de conflito + INSERT na mesma transação                                                                   | SQLite serializa escritas; em Postgres usaria exclusion constraint                              |
-| Identidade           | Seletor "entrar como" + cookie httpOnly; permissões checadas no servidor                                           | O enunciado dispensa login real; trocar por login real altera só `getCurrentUser`               |
-| Estado no cliente    | URL (`searchParams`) + estado de formulário                                                                        | Leituras são Server Components; não há cache de cliente a gerenciar                             |
-| Merge de PRs         | Sempre merge commit (sem squash/rebase)                                                                            | Em Git flow, `main` e `develop` precisam compartilhar os commits de release/hotfix              |
-| Autorização do admin | `requireAdmin()` (404) no layout, em cada página e em cada action; o serviço repete a checagem e lança `FORBIDDEN` | 404 não revela a área; a checagem no serviço é testável sem cookies e protege outros chamadores |
-| Loading em `/admin`  | Sem `loading.tsx`                                                                                                  | Com loading acima da página, o `notFound()` sai com status 200                                  |
+| Tema                 | Decisão                                                                                                                   | Motivo                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Backend              | Next.js full stack (Server Actions + camada de serviço), sem backend separado                                             | Sem consumidor externo; menos contrato duplicado e menos código para manter                     |
+| API REST             | Só `GET /api/health`                                                                                                      | Não há cliente externo; serviços já isolados permitem expor REST depois                         |
+| Health check         | `GET /api/health` público e sem cache; lê uma tabela real; 200 `{"status":"ok"}` ou 503 `{"status":"error"}` sem detalhes | `SELECT 1` passaria com um SQLite vazio; o detalhe do erro fica só no log do servidor           |
+| Banco                | SQLite com migrations Prisma                                                                                              | Zero infraestrutura, roda no CI, sobe em 3 comandos                                             |
+| Concorrência         | Checagem de conflito + INSERT na mesma transação                                                                          | SQLite serializa escritas; em Postgres usaria exclusion constraint                              |
+| Identidade           | Seletor "entrar como" + cookie httpOnly; permissões checadas no servidor                                                  | O enunciado dispensa login real; trocar por login real altera só `getCurrentUser`               |
+| Estado no cliente    | URL (`searchParams`) + estado de formulário                                                                               | Leituras são Server Components; não há cache de cliente a gerenciar                             |
+| Merge de PRs         | Sempre merge commit (sem squash/rebase)                                                                                   | Em Git flow, `main` e `develop` precisam compartilhar os commits de release/hotfix              |
+| Autorização do admin | `requireAdmin()` (404) no layout, em cada página e em cada action; o serviço repete a checagem e lança `FORBIDDEN`        | 404 não revela a área; a checagem no serviço é testável sem cookies e protege outros chamadores |
+| Loading em `/admin`  | Sem `loading.tsx`                                                                                                         | Com loading acima da página, o `notFound()` sai com status 200                                  |
 
 ## Fora do escopo (com motivo)
 

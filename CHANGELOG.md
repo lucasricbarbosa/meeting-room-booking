@@ -10,6 +10,12 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 - Duração máxima de reserva por sala, de 15 min a 12 h, editável no admin e exibida no card e na tela de reserva (SALA-6).
 
+## [1.0.1] - 2026-10-06
+
+### Fixed
+
+- Reservas só são aceitas de segunda a sexta, entre 08:00 e 20:00 no fuso de negócio (`NOT_A_BUSINESS_DAY`, `OUTSIDE_BUSINESS_HOURS`). A tela de reserva oferece só horários dentro da janela e avisa quando a data cai no fim de semana (SALA-5).
+
 ## [1.0.0] - 2026-10-05
 
 ### Added

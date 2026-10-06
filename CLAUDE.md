@@ -71,7 +71,6 @@ Dependency rules:
 ## Current business rules
 
 > Implement **only** the rules in this section. Do not anticipate future rules.
-> In particular: do **not** implement business days/hours until I explicitly ask.
 
 Business time zone: `BUSINESS_TIMEZONE` (default `America/Sao_Paulo`). The database stores **UTC**.
 Every calendar rule is evaluated in the business time zone — never with the process's `getHours()`/`getDay()`.
@@ -81,7 +80,8 @@ Creating a reservation, in this order:
 1. Room exists and is active (`ROOM_NOT_FOUND`, `ROOM_INACTIVE`).
 2. `endsAt > startsAt` (`INVALID_RANGE`).
 3. Start is not in the past: `startsAt < now` → `IN_THE_PAST`.
-4. Duration ≥ 15 min (`DURATION_TOO_SHORT`) and ≤ `room.maxBookingMinutes`(`DURATION_TOO_LONG`), which ranges from 15 to 720.
+4. Duration ≥ 15 min (`DURATION_TOO_SHORT`) and ≤ `room.maxBookingMinutes` (`DURATION_TOO_LONG`), which ranges from 15 to 720.
+   4b. Monday to Friday only (`NOT_A_BUSINESS_DAY`). Start ≥ 08:00 and end ≤ 20:00 on the same day, in the business time zone (`OUTSIDE_BUSINESS_HOURS`). Public holidays are out of scope.
 5. No overlap with `ACTIVE` reservations of the same room. Half-open intervals `[start, end)`:
    conflict if `existing.startsAt < new.endsAt && existing.endsAt > new.startsAt`.
    Back-to-back bookings (09–10 and 10–11) are allowed. Cancelled ones do not block (`ROOM_CONFLICT`).

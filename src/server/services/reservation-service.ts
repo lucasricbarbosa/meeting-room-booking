@@ -42,6 +42,7 @@ export async function createReservation(
 
       validateReservation(input, {
         now,
+        timeZone: BUSINESS_TIMEZONE,
         maxBookingMinutes: room.maxBookingMinutes,
       });
 

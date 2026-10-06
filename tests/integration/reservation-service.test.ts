@@ -151,6 +151,13 @@ describe("createReservation", () => {
     ).rejects.toMatchObject({ code: "IN_THE_PAST" });
   });
 
+  it("applies the business-hours rule", async () => {
+    await expect(book("19:30", "20:15")).rejects.toMatchObject({
+      code: "OUTSIDE_BUSINESS_HOURS",
+    });
+    expect(await prisma.reservation.count()).toBe(0);
+  });
+
   it("rejects 90 minutes in a room limited to 60", async () => {
     await prisma.room.update({
       where: { id: roomId },

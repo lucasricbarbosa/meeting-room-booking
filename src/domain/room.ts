@@ -15,3 +15,15 @@ export type RoomListItem = {
   location: string | null;
   features: FeatureSummary[];
 };
+
+export type AdminRoomListItem = RoomListItem & { isActive: boolean };
+
+export type RoomDetails = {
+  id: string;
+  name: string;
+  capacity: number;
+  location: string | null;
+  description: string | null;
+  isActive: boolean;
+  featureSlugs: string[];
+};

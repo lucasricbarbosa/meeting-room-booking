@@ -1,6 +1,16 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import type { UserSummary } from "@/domain/user";
+import type { RoomInput } from "@/schemas/room";
 import { prisma } from "@/server/db";
-import { getActiveRoom, listRooms } from "@/server/services/room-service";
+import {
+  // The local createRoom helper inserts directly; this is the admin service under test.
+  createRoom as createRoomService,
+  getActiveRoom,
+  getRoomDetails,
+  listAllRooms,
+  listRooms,
+  updateRoom,
+} from "@/server/services/room-service";
 import { resetDatabase } from "../helpers/db";
 
 async function createRoom(data: {
@@ -120,5 +130,153 @@ describe("getActiveRoom", () => {
 
   it("returns null for a room that does not exist", async () => {
     expect(await getActiveRoom("missing-room")).toBeNull();
+  });
+});
+
+describe("room administration", () => {
+  const userSelect = { id: true, name: true, email: true, role: true } as const;
+  let admin: UserSummary;
+  let regularUser: UserSummary;
+
+  const input = (overrides: Partial<RoomInput> = {}): RoomInput => ({
+    name: "Sala Nova",
+    capacity: 6,
+    location: "5º andar",
+    description: null,
+    features: ["tv"],
+    isActive: true,
+    ...overrides,
+  });
+
+  beforeEach(async () => {
+    admin = await prisma.user.create({
+      data: { name: "Carla Mendes", email: "carla@example.com", role: "ADMIN" },
+      select: userSelect,
+    });
+    regularUser = await prisma.user.create({
+      data: { name: "Ana Souza", email: "ana@example.com" },
+      select: userSelect,
+    });
+  });
+
+  describe("createRoom", () => {
+    it("rejects a regular user with FORBIDDEN and creates nothing", async () => {
+      await expect(
+        createRoomService(regularUser, input()),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(await prisma.room.count()).toBe(0);
+    });
+
+    it("lets an admin create a room with its features", async () => {
+      const { id } = await createRoomService(
+        admin,
+        input({ features: ["projector", "tv"] }),
+      );
+
+      expect(await getRoomDetails(id)).toEqual({
+        id,
+        name: "Sala Nova",
+        capacity: 6,
+        location: "5º andar",
+        description: null,
+        isActive: true,
+        featureSlugs: ["projector", "tv"],
+      });
+    });
+
+    it("rejects a duplicate name with NAME_TAKEN", async () => {
+      await createRoom({ name: "Sala Nova", capacity: 4 });
+
+      await expect(createRoomService(admin, input())).rejects.toMatchObject({
+        code: "NAME_TAKEN",
+      });
+      expect(await prisma.room.count()).toBe(1);
+    });
+
+    it("rejects a feature outside the catalog", async () => {
+      await expect(
+        createRoomService(admin, input({ features: ["tv", "jacuzzi"] })),
+      ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+      expect(await prisma.room.count()).toBe(0);
+    });
+  });
+
+  describe("updateRoom", () => {
+    it("rejects a regular user with FORBIDDEN and leaves the room intact", async () => {
+      const room = await createRoom({ name: "Sala A", capacity: 4 });
+
+      await expect(
+        updateRoom(regularUser, room.id, input({ isActive: false })),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(await prisma.room.findUnique({ where: { id: room.id } })).toEqual(
+        room,
+      );
+    });
+
+    it("lets an admin edit the fields and replace the features", async () => {
+      const room = await createRoom({
+        name: "Sala A",
+        capacity: 4,
+        features: ["tv"],
+      });
+
+      await updateRoom(
+        admin,
+        room.id,
+        input({
+          name: "Sala A2",
+          capacity: 10,
+          description: "Renovada",
+          features: ["projector"],
+        }),
+      );
+
+      expect(await getRoomDetails(room.id)).toEqual({
+        id: room.id,
+        name: "Sala A2",
+        capacity: 10,
+        location: "5º andar",
+        description: "Renovada",
+        isActive: true,
+        featureSlugs: ["projector"],
+      });
+    });
+
+    it("accepts saving a room with its own name", async () => {
+      const room = await createRoom({ name: "Sala Nova", capacity: 4 });
+
+      await expect(
+        updateRoom(admin, room.id, input()),
+      ).resolves.toBeUndefined();
+    });
+
+    it("rejects renaming to another room's name with NAME_TAKEN", async () => {
+      await createRoom({ name: "Sala Nova", capacity: 4 });
+      const room = await createRoom({ name: "Sala B", capacity: 4 });
+
+      await expect(updateRoom(admin, room.id, input())).rejects.toMatchObject({
+        code: "NAME_TAKEN",
+      });
+      expect(
+        (await prisma.room.findUniqueOrThrow({ where: { id: room.id } })).name,
+      ).toBe("Sala B");
+    });
+
+    it("rejects a room that does not exist", async () => {
+      await expect(
+        updateRoom(admin, "missing-room", input()),
+      ).rejects.toMatchObject({ code: "ROOM_NOT_FOUND" });
+    });
+
+    it("hides a deactivated room from the room list but keeps it in the admin list", async () => {
+      const room = await createRoom({ name: "Sala Nova", capacity: 4 });
+
+      await updateRoom(admin, room.id, input({ isActive: false }));
+
+      expect(await listRooms({ features: [] })).toEqual([]);
+      expect(await listAllRooms()).toEqual([
+        expect.objectContaining({ name: "Sala Nova", isActive: false }),
+      ]);
+    });
   });
 });

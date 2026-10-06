@@ -1,5 +1,4 @@
-export type ErrorCode =
-  "VALIDATION_ERROR" | "USER_NOT_FOUND" | "INTERNAL_ERROR";
+import type { ErrorCode } from "@/domain/errors";
 
 export type ActionResult<T = void> =
   | { ok: true; data: T }

@@ -21,6 +21,11 @@ Formato: decisão — motivo. Ao mudar uma decisão, edite aqui no mesmo PR.
 | Acesso de não-admin a `/admin`      | Responde 404 (`notFound()`)                                                      | Não revela que a área existe                                                  |
 | "Trocar usuário" × "Sair"           | Trocar abre `/sign-in` mantendo a sessão; Sair apaga o cookie                    | Duas ações com efeitos distintos; trocar não obriga a sair antes              |
 | `/sign-in` com sessão ativa         | Mostra a lista com o usuário atual marcado, sem redirecionar                     | É o destino de "Trocar usuário"                                               |
+| Ocupação do dia na tela de reserva  | Mostra só os horários ocupados, sem título nem dono                              | Mesmo critério da mensagem de conflito                                        |
+| Conflito antes do envio             | Aviso visual com a mesma regra do servidor; o botão continua habilitado          | O servidor decide; a prévia pode estar desatualizada                          |
+| Seletor de horário                  | Dia inteiro (00:00–23:45) em passos de 15 min                                    | Ainda não há regra de horário comercial                                       |
+| Data inválida na URL da reserva     | Usa hoje                                                                         | Link editado à mão não deve virar tela de erro                                |
+| Aviso de sucesso após reservar      | Action redireciona com `?created=1`; a página de destino mostra o toast          | Toast disparado antes de um `redirect()` no servidor se perde na navegação    |
 
 ## Técnica
 

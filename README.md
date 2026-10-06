@@ -78,6 +78,7 @@ Criar uma reserva, nesta ordem, dentro da mesma transação:
 2. O término é depois do início: `INVALID_RANGE`.
 3. O início não está no passado (`startsAt < now`): `IN_THE_PAST`.
 4. A duração fica entre 15 e 240 minutos, em minutos exatos: `DURATION_TOO_SHORT`, `DURATION_TOO_LONG`.
+   - **4b.** Só de segunda a sexta (`NOT_A_BUSINESS_DAY`), com início a partir de 08:00 e término até 20:00 do mesmo dia (`OUTSIDE_BUSINESS_HOURS`). Terminar às 20:00 em ponto é permitido. Tudo é avaliado no fuso de negócio, nunca no fuso do processo. Feriados ficam fora do escopo.
 5. Não há sobreposição com reservas ativas da mesma sala, com intervalos semiabertos `[início, fim)`. Reservas encostadas (09–10 e 10–11) são permitidas, e canceladas não bloqueiam: `ROOM_CONFLICT`. A mensagem mostra o horário ocupado, nunca quem reservou.
 6. Falha de concorrência do SQLite durante a transação: `TRY_AGAIN`.
 
@@ -110,7 +111,8 @@ Resumo das decisões tomadas onde o enunciado deixa margem. A lista completa, co
 | Excluir sala                        | Não existe; o admin desativa                                                   | Exclusão quebraria o histórico de reservas                                    |
 | Desativar sala com reservas futuras | As reservas continuam valendo                                                  | Nenhuma regra pedida; o dono ainda pode cancelar                              |
 | Recursos                            | Catálogo fixo no seed; o filtro exige todos os marcados                        | CRUD de recursos não foi pedido                                               |
-| Horários na tela                    | Dia inteiro (00:00–23:45) em passos de 15 min; servidor aceita qualquer minuto | Não inventar regra que o enunciado não pede                                   |
+| Horários na tela                    | Início 08:00–19:45, término 08:15–20:00; servidor aceita qualquer minuto       | Espelha o horário comercial sem inventar granularidade                        |
+| Dia útil                            | Segunda a sexta, 08:00–20:00 no fuso de negócio; feriados ficam fora do escopo | Feriados exigiriam um calendário externo                                      |
 | Privacidade                         | Conflito e ocupação do dia mostram só o horário, nunca o dono                  | Evita vazamento de dados entre usuários                                       |
 | `/admin` para não-admin             | 404                                                                            | Não revela que a área existe                                                  |
 | Filtros e datas inválidos na URL    | Ignorados (filtro) ou trocados por hoje (data)                                 | Link editado à mão não vira tela de erro                                      |
@@ -133,8 +135,8 @@ Resumo das decisões tomadas onde o enunciado deixa margem. A lista completa, co
 npm test
 ```
 
-- **Regras de domínio** (`tests/unit/reservation-rules.test.ts`): intervalo inválido, início no passado, limites de 15 e 240 minutos, e `overlaps` em todos os casos (parcial no início e no fim, contido, englobando, encostado antes e depois).
-- **Sobreposição contra o banco** (`tests/integration/reservation-service.test.ts`): conflitos rejeitados, reserva encostada aceita, cancelada não bloqueia, sala inativa rejeitada, e a mensagem de conflito sem o dono.
+- **Regras de domínio** (`tests/unit/reservation-rules.test.ts`): intervalo inválido, início no passado, limites de 15 e 240 minutos, fim de semana e horário fora de 08:00–20:00 (inclusive uma sexta 19:30–20:00 em São Paulo, que é 22:30 em UTC), e `overlaps` em todos os casos (parcial no início e no fim, contido, englobando, encostado antes e depois).
+- **Sobreposição contra o banco** (`tests/integration/reservation-service.test.ts`): conflitos rejeitados, reserva encostada aceita, cancelada não bloqueia, sala inativa rejeitada, horário comercial aplicado na criação, e a mensagem de conflito sem o dono.
 - **Permissão de cancelamento:** o dono cancela; outro usuário e o admin recebem `FORBIDDEN`, e a reserva continua ativa; reserva cancelada ou já iniciada é rejeitada.
 - **Admin de salas** (`tests/integration/room-service.test.ts`): usuário comum recebe `FORBIDDEN` ao criar e ao editar, e nada muda no banco; nome duplicado gera `NAME_TAKEN`; sala desativada some da listagem.
 - **Fuso, filtros e schemas:** conversões entre o fuso de negócio e UTC, leitura dos filtros da URL e validação do formulário de sala.

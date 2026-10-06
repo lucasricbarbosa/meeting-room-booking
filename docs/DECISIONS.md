@@ -23,7 +23,11 @@ Formato: decisão — motivo. Ao mudar uma decisão, edite aqui no mesmo PR.
 | `/sign-in` com sessão ativa            | Mostra a lista com o usuário atual marcado, sem redirecionar                     | É o destino de "Trocar usuário"                                               |
 | Ocupação do dia na tela de reserva     | Mostra só os horários ocupados, sem título nem dono                              | Mesmo critério da mensagem de conflito                                        |
 | Conflito antes do envio                | Aviso visual com a mesma regra do servidor; o botão continua habilitado          | O servidor decide; a prévia pode estar desatualizada                          |
-| Seletor de horário                     | Dia inteiro (00:00–23:45) em passos de 15 min                                    | Ainda não há regra de horário comercial                                       |
+| Seletor de horário                     | Início 08:00–19:45 e término 08:15–20:00, em passos de 15 min                    | Só oferece horários que o servidor aceita                                     |
+| Dia útil                               | Segunda a sexta; feriados fora do escopo                                         | Feriados exigiriam um calendário externo                                      |
+| Término às 20:00 em ponto              | Permitido; início a partir de 08:00 e término até 20:00 do mesmo dia             | Intervalo semiaberto: a reserva termina junto com o expediente                |
+| Fuso do horário comercial              | Dia da semana e horário avaliados no fuso de negócio, comparando instantes       | O processo roda em UTC: sexta 19:30 em São Paulo já é 22:30 em UTC            |
+| Fim de semana na tela de reserva       | Aviso no campo de data antes do envio; o botão continua habilitado               | O input de data não bloqueia dias da semana; o servidor decide                |
 | Data inválida na URL da reserva        | Usa hoje                                                                         | Link editado à mão não deve virar tela de erro                                |
 | Aviso de sucesso após reservar         | Action redireciona com `?created=1`; a página de destino mostra o toast          | Toast disparado antes de um `redirect()` no servidor se perde na navegação    |
 | Filtro inválido na URL                 | Cada filtro é validado à parte; valor inválido é ignorado                        | Link editado à mão não vira tela de erro nem descarta os filtros válidos      |

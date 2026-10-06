@@ -5,7 +5,11 @@ import { useActionState, useState } from "react";
 import { createReservationAction } from "@/app/actions/reservations";
 import { DateField } from "@/components/reservations/date-field";
 import { DayTimeline } from "@/components/reservations/day-timeline";
-import { TimeSelect } from "@/components/reservations/time-select";
+import {
+  END_TIME_OPTIONS,
+  START_TIME_OPTIONS,
+  TimeSelect,
+} from "@/components/reservations/time-select";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -97,6 +101,7 @@ export function ReservationForm({
             id="startTime"
             name="startTime"
             value={startTime}
+            options={START_TIME_OPTIONS}
             onValueChange={setStartTime}
             invalid={Boolean(errorsFor("startTime"))}
           />
@@ -108,6 +113,7 @@ export function ReservationForm({
             id="endTime"
             name="endTime"
             value={endTime}
+            options={END_TIME_OPTIONS}
             onValueChange={setEndTime}
             invalid={Boolean(errorsFor("endTime"))}
           />

@@ -8,6 +8,8 @@ export type ErrorCode =
   | "IN_THE_PAST"
   | "DURATION_TOO_SHORT"
   | "DURATION_TOO_LONG"
+  | "NOT_A_BUSINESS_DAY"
+  | "OUTSIDE_BUSINESS_HOURS"
   | "ROOM_CONFLICT"
   | "TRY_AGAIN"
   | "NOT_FOUND"

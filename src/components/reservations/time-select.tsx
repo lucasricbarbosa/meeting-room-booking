@@ -7,17 +7,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CLOSING_TIME, OPENING_TIME } from "@/domain/reservation-rules";
 
 const STEP_MINUTES = 15;
 
-// 00:00 to 23:45: there is no business-hours rule yet, so every slot of the day is offered.
-const TIME_OPTIONS = Array.from(
+// "HH:mm" strings compare correctly as text, so the business window is a plain filter.
+const BUSINESS_TIMES = Array.from(
   { length: (24 * 60) / STEP_MINUTES },
   (_, index) => {
     const minutes = index * STEP_MINUTES;
     const hours = String(Math.floor(minutes / 60)).padStart(2, "0");
     return `${hours}:${String(minutes % 60).padStart(2, "0")}`;
   },
+).filter((time) => time >= OPENING_TIME && time <= CLOSING_TIME);
+
+export const START_TIME_OPTIONS = BUSINESS_TIMES.filter(
+  (time) => time < CLOSING_TIME,
+);
+export const END_TIME_OPTIONS = BUSINESS_TIMES.filter(
+  (time) => time > OPENING_TIME,
 );
 
 const PLACEHOLDER = "Selecione";
@@ -26,6 +34,7 @@ type TimeSelectProps = {
   id: string;
   name: string;
   value: string;
+  options: string[];
   onValueChange: (value: string) => void;
   invalid: boolean;
 };
@@ -34,6 +43,7 @@ export function TimeSelect({
   id,
   name,
   value,
+  options,
   onValueChange,
   invalid,
 }: TimeSelectProps) {
@@ -49,7 +59,7 @@ export function TimeSelect({
           </SelectValue>
         </SelectTrigger>
         <SelectContent className="max-h-72">
-          {TIME_OPTIONS.map((time) => (
+          {options.map((time) => (
             <SelectItem key={time} value={time} className="tabular-nums">
               {time}
             </SelectItem>

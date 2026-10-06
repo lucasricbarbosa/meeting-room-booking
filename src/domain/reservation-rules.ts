@@ -1,4 +1,5 @@
 import { DomainError } from "./errors";
+import type { ReservationStatus } from "./reservation";
 
 export const MIN_DURATION_MINUTES = 15;
 export const MAX_DURATION_MINUTES = 240;
@@ -62,4 +63,43 @@ export function validateReservation(
   for (const rule of RULES) {
     rule(input, ctx);
   }
+}
+
+export type CancellableReservation = {
+  userId: string;
+  status: ReservationStatus;
+  startsAt: Date;
+};
+
+// Ownership first: otherwise someone else's reservation would reveal its status through the error code.
+export function validateCancellation(
+  reservation: CancellableReservation,
+  ctx: { userId: string; now: Date },
+): void {
+  if (reservation.userId !== ctx.userId) {
+    throw new DomainError(
+      "FORBIDDEN",
+      "Você só pode cancelar as suas próprias reservas.",
+    );
+  }
+  if (reservation.status !== "ACTIVE") {
+    throw new DomainError(
+      "ALREADY_CANCELLED",
+      "Esta reserva já foi cancelada.",
+    );
+  }
+  if (reservation.startsAt <= ctx.now) {
+    throw new DomainError(
+      "ALREADY_STARTED",
+      "Não é possível cancelar uma reserva que já começou.",
+    );
+  }
+}
+
+// Same conditions as validateCancellation for the owner; the UI uses it to decide whether to offer the button.
+export function isCancellable(
+  reservation: Omit<CancellableReservation, "userId">,
+  now: Date,
+): boolean {
+  return reservation.status === "ACTIVE" && reservation.startsAt > now;
 }

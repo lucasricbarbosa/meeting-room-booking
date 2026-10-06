@@ -9,7 +9,11 @@ export type ErrorCode =
   | "DURATION_TOO_SHORT"
   | "DURATION_TOO_LONG"
   | "ROOM_CONFLICT"
-  | "TRY_AGAIN";
+  | "TRY_AGAIN"
+  | "NOT_FOUND"
+  | "FORBIDDEN"
+  | "ALREADY_CANCELLED"
+  | "ALREADY_STARTED";
 
 export class DomainError extends Error {
   constructor(

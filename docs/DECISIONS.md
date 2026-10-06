@@ -26,6 +26,13 @@ Formato: decisão — motivo. Ao mudar uma decisão, edite aqui no mesmo PR.
 | Seletor de horário                  | Dia inteiro (00:00–23:45) em passos de 15 min                                    | Ainda não há regra de horário comercial                                       |
 | Data inválida na URL da reserva     | Usa hoje                                                                         | Link editado à mão não deve virar tela de erro                                |
 | Aviso de sucesso após reservar      | Action redireciona com `?created=1`; a página de destino mostra o toast          | Toast disparado antes de um `redirect()` no servidor se perde na navegação    |
+| Filtro inválido na URL              | Cada filtro é validado à parte; valor inválido é ignorado                        | Link editado à mão não vira tela de erro nem descarta os filtros válidos      |
+| Recurso inexistente no filtro       | Slug fora do catálogo é descartado antes da consulta                             | Senão a lista ficaria vazia sem nenhum filtro marcado que explicasse          |
+| Duração da reserva                  | Calculada em minutos exatos (ms ÷ 60 000), sem arredondar                        | `differenceInMinutes` trunca: 240 min 30 s passaria como 240                  |
+| Reserva em andamento                | Fica em "Próximas" com selo "Em andamento", sem botão de cancelar                | Ainda não terminou, mas já não pode ser cancelada                             |
+| "Anteriores" em Minhas reservas     | Últimas 20 já terminadas, da mais recente para a mais antiga                     | Histórico longo não ajuda nessa tela; sem paginação por ora                   |
+| Ordem das checagens ao cancelar     | Dono primeiro (`FORBIDDEN`), depois status e início                              | Outro usuário não descobre se a reserva alheia já foi cancelada ou começou    |
+| Aviso de sucesso ao cancelar        | Toast disparado no cliente, sem redirect                                         | A página continua a mesma; só a lista é revalidada                            |
 
 ## Técnica
 

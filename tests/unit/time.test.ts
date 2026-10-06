@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   businessToUtc,
   formatBusinessDay,
+  formatReservationRange,
   formatTimeRange,
   getBusinessDayRange,
   utcToBusiness,
@@ -56,5 +57,29 @@ describe("formatTimeRange", () => {
     };
 
     expect(formatTimeRange(range, timeZone)).toBe("10:00–11:30");
+  });
+});
+
+describe("formatReservationRange", () => {
+  it("shows the business day and the time range", () => {
+    const range = {
+      startsAt: new Date("2026-10-07T13:00:00Z"),
+      endsAt: new Date("2026-10-07T14:00:00Z"),
+    };
+
+    expect(formatReservationRange(range, timeZone)).toBe(
+      "qua, 07/10 · 10:00–11:00",
+    );
+  });
+
+  it("uses the business date, not the UTC date, late in the evening", () => {
+    const range = {
+      startsAt: new Date("2026-10-08T01:00:00Z"),
+      endsAt: new Date("2026-10-08T02:00:00Z"),
+    };
+
+    expect(formatReservationRange(range, timeZone)).toBe(
+      "qua, 07/10 · 22:00–23:00",
+    );
   });
 });

@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { UserSummary } from "@/domain/user";
 import { prisma } from "@/server/db";
 import {
+  cancelReservation,
   createReservation,
   listDayReservations,
+  listUserReservations,
 } from "@/server/services/reservation-service";
 import { resetDatabase } from "../helpers/db";
 
@@ -192,5 +194,174 @@ describe("listDayReservations", () => {
       { id: morning.id, startsAt: at("09:00"), endsAt: at("10:00") },
       { id: late.id, startsAt: at("22:30"), endsAt: at("23:30") },
     ]);
+  });
+});
+
+describe("cancelReservation", () => {
+  let reservationId: string;
+
+  beforeEach(async () => {
+    reservationId = (await insertOwn(at("10:00"), at("11:00"))).id;
+  });
+
+  async function insertOwn(startsAt: Date, endsAt: Date) {
+    return prisma.reservation.create({
+      data: { roomId, userId: owner.id, startsAt, endsAt },
+    });
+  }
+
+  function getState(id = reservationId) {
+    return prisma.reservation.findUniqueOrThrow({
+      where: { id },
+      select: { status: true, cancelledAt: true },
+    });
+  }
+
+  it("lets the owner cancel, keeping the record (soft cancel)", async () => {
+    await cancelReservation(owner, reservationId, now);
+
+    expect(await getState()).toEqual({ status: "CANCELLED", cancelledAt: now });
+  });
+
+  it("forbids another user and keeps the reservation active", async () => {
+    await expect(
+      cancelReservation(otherUser, reservationId, now),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    expect(await getState()).toEqual({ status: "ACTIVE", cancelledAt: null });
+  });
+
+  it("forbids an admin who is not the owner", async () => {
+    const admin = await prisma.user.create({
+      data: { name: "Carla Mendes", email: "carla@example.com", role: "ADMIN" },
+      select: userSelect,
+    });
+
+    await expect(
+      cancelReservation(admin, reservationId, now),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    expect(await getState()).toEqual({ status: "ACTIVE", cancelledAt: null });
+  });
+
+  it.each([
+    ["exactly at its start", "2026-10-07T12:00:00Z"],
+    ["in progress", "2026-10-07T11:30:00Z"],
+  ])(
+    "rejects a reservation that already started (%s)",
+    async (_label, start) => {
+      const startsAt = new Date(start);
+      const started = await insertOwn(
+        startsAt,
+        new Date(startsAt.getTime() + 60 * 60_000),
+      );
+
+      await expect(
+        cancelReservation(owner, started.id, now),
+      ).rejects.toMatchObject({ code: "ALREADY_STARTED" });
+
+      expect(await getState(started.id)).toEqual({
+        status: "ACTIVE",
+        cancelledAt: null,
+      });
+    },
+  );
+
+  it("rejects a reservation that is already cancelled", async () => {
+    await cancelReservation(owner, reservationId, now);
+    const later = new Date(now.getTime() + 60_000);
+
+    await expect(
+      cancelReservation(owner, reservationId, later),
+    ).rejects.toMatchObject({ code: "ALREADY_CANCELLED" });
+
+    expect(await getState()).toEqual({ status: "CANCELLED", cancelledAt: now });
+  });
+
+  it("checks ownership first, so another user cannot learn the status", async () => {
+    await cancelReservation(owner, reservationId, now);
+
+    await expect(
+      cancelReservation(otherUser, reservationId, now),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("rejects a reservation that does not exist", async () => {
+    await expect(
+      cancelReservation(owner, "missing-reservation", now),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+describe("listUserReservations", () => {
+  const local = (dateTime: string) => new Date(`${dateTime}:00-03:00`);
+
+  function insert(
+    startsAt: Date,
+    endsAt: Date,
+    data: { userId?: string; status?: "ACTIVE" | "CANCELLED" } = {},
+  ) {
+    return prisma.reservation.create({
+      data: {
+        roomId,
+        userId: data.userId ?? owner.id,
+        title: "Planejamento",
+        startsAt,
+        endsAt,
+        status: data.status ?? "ACTIVE",
+      },
+    });
+  }
+
+  it("splits the user's reservations around now, including cancelled ones", async () => {
+    // now is 2026-10-07 09:00 in São Paulo.
+    const yesterday = await insert(
+      local("2026-10-06T14:00"),
+      local("2026-10-06T15:00"),
+    );
+    const endedNow = await insert(
+      local("2026-10-07T08:00"),
+      local("2026-10-07T09:00"),
+    );
+    const inProgress = await insert(
+      local("2026-10-07T08:30"),
+      local("2026-10-07T09:30"),
+    );
+    const cancelled = await insert(at("14:00"), at("15:00"), {
+      status: "CANCELLED",
+    });
+    const tomorrow = await insert(at("10:00"), at("11:00"));
+    await insert(at("12:00"), at("13:00"), { userId: otherUser.id });
+
+    const { upcoming, past } = await listUserReservations(owner.id, now);
+
+    const item = (reservation: typeof tomorrow) => ({
+      id: reservation.id,
+      title: "Planejamento",
+      startsAt: reservation.startsAt,
+      endsAt: reservation.endsAt,
+      status: reservation.status,
+      roomName: "Sala A",
+    });
+    expect(upcoming).toEqual([
+      item(inProgress),
+      item(tomorrow),
+      item(cancelled),
+    ]);
+    expect(past).toEqual([item(endedNow), item(yesterday)]);
+  });
+
+  it("keeps only the 20 most recent past reservations", async () => {
+    const hour = 60 * 60_000;
+    for (let index = 1; index <= 21; index++) {
+      const startsAt = new Date(now.getTime() - index * hour);
+      await insert(startsAt, new Date(startsAt.getTime() + hour / 2));
+    }
+
+    const { past } = await listUserReservations(owner.id, now);
+
+    expect(past).toHaveLength(20);
+    expect(past[0]?.startsAt).toEqual(new Date(now.getTime() - hour));
+    expect(past[19]?.startsAt).toEqual(new Date(now.getTime() - 20 * hour));
   });
 });

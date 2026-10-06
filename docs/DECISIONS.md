@@ -37,6 +37,9 @@ Formato: decisão — motivo. Ao mudar uma decisão, edite aqui no mesmo PR.
 | Nome de sala repetido                  | Único no banco, após trim e sensível a maiúsculas (`NAME_TAKEN` no campo)        | A constraint do banco decide, inclusive em salvamentos simultâneos            |
 | Tamanho dos campos da sala             | Nome e local até 60 caracteres, descrição até 500, capacidade inteira ≥ 1        | Limites de bom senso; o formulário espelha o schema                           |
 | Recurso fora do catálogo no formulário | Rejeitado com `VALIDATION_ERROR`                                                 | Só acontece com formulário adulterado; ignorar esconderia o problema          |
+| Duração máxima por sala                | Inteiro de 15 a 720 min por sala, padrão 240                                     | 15 é a duração mínima de uma reserva; 12 h cobre o maior dia útil esperado    |
+| Reduzir o limite de uma sala           | Vale só para novas reservas; as já feitas continuam válidas                      | A regra é checada na criação; invalidar reservas existentes não foi pedido    |
+| Exibição da duração                    | `1 h`, `1 h 30 min`, `30 min` (sem zeros nem decimais)                           | Lê melhor que `1,5 h` ou `90 min` e serve para qualquer limite                |
 | Aviso de sucesso no admin              | Action redireciona com `?created=1` ou `?updated=1` para `/admin/rooms`          | Mesmo padrão da criação de reserva                                            |
 
 ## Técnica

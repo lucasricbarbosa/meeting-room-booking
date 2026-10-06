@@ -30,6 +30,7 @@ Outros scripts: `npm run lint`, `npm run typecheck`, `npm test`, `npm run format
 - **SALA-2:** reserva de sala com a ocupação do dia e aviso de conflito antes do envio.
 - **SALA-3:** "Minhas reservas" (próximas e anteriores) e cancelamento das próprias reservas.
 - **SALA-4:** admin de salas: listar todas, criar, editar e desativar.
+- **SALA-6:** duração máxima por sala, editada no admin (15 min a 12 h) e exibida no card e na tela de reserva.
 
 ## Stack e por quê
 
@@ -77,7 +78,7 @@ Criar uma reserva, nesta ordem, dentro da mesma transação:
 1. A sala existe e está ativa: `ROOM_NOT_FOUND`, `ROOM_INACTIVE`.
 2. O término é depois do início: `INVALID_RANGE`.
 3. O início não está no passado (`startsAt < now`): `IN_THE_PAST`.
-4. A duração fica entre 15 e 240 minutos, em minutos exatos: `DURATION_TOO_SHORT`, `DURATION_TOO_LONG`.
+4. A duração tem pelo menos 15 minutos e no máximo o limite da sala (`maxBookingMinutes`, de 15 a 720, padrão 240), em minutos exatos: `DURATION_TOO_SHORT`, `DURATION_TOO_LONG`. A mensagem cita o limite da sala.
 5. Não há sobreposição com reservas ativas da mesma sala, com intervalos semiabertos `[início, fim)`. Reservas encostadas (09–10 e 10–11) são permitidas, e canceladas não bloqueiam: `ROOM_CONFLICT`. A mensagem mostra o horário ocupado, nunca quem reservou.
 6. Falha de concorrência do SQLite durante a transação: `TRY_AGAIN`.
 
@@ -133,7 +134,7 @@ Resumo das decisões tomadas onde o enunciado deixa margem. A lista completa, co
 npm test
 ```
 
-- **Regras de domínio** (`tests/unit/reservation-rules.test.ts`): intervalo inválido, início no passado, limites de 15 e 240 minutos, e `overlaps` em todos os casos (parcial no início e no fim, contido, englobando, encostado antes e depois).
+- **Regras de domínio** (`tests/unit/reservation-rules.test.ts`): intervalo inválido, início no passado, duração mínima de 15 minutos e máxima pelo limite de cada sala, e `overlaps` em todos os casos (parcial no início e no fim, contido, englobando, encostado antes e depois).
 - **Sobreposição contra o banco** (`tests/integration/reservation-service.test.ts`): conflitos rejeitados, reserva encostada aceita, cancelada não bloqueia, sala inativa rejeitada, e a mensagem de conflito sem o dono.
 - **Permissão de cancelamento:** o dono cancela; outro usuário e o admin recebem `FORBIDDEN`, e a reserva continua ativa; reserva cancelada ou já iniciada é rejeitada.
 - **Admin de salas** (`tests/integration/room-service.test.ts`): usuário comum recebe `FORBIDDEN` ao criar e ao editar, e nada muda no banco; nome duplicado gera `NAME_TAKEN`; sala desativada some da listagem.

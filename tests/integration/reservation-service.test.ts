@@ -150,6 +150,30 @@ describe("createReservation", () => {
       ),
     ).rejects.toMatchObject({ code: "IN_THE_PAST" });
   });
+
+  it("rejects 90 minutes in a room limited to 60", async () => {
+    await prisma.room.update({
+      where: { id: roomId },
+      data: { maxBookingMinutes: 60 },
+    });
+
+    await expect(book("09:00", "10:30")).rejects.toMatchObject({
+      code: "DURATION_TOO_LONG",
+      message: "Esta sala permite reservas de até 1 h.",
+    });
+    expect(await prisma.reservation.count()).toBe(0);
+  });
+
+  it("accepts the same 90 minutes in a room limited to 240", async () => {
+    await prisma.room.update({
+      where: { id: roomId },
+      data: { maxBookingMinutes: 240 },
+    });
+
+    await book("09:00", "10:30");
+
+    expect(await prisma.reservation.count()).toBe(1);
+  });
 });
 
 describe("listDayReservations", () => {

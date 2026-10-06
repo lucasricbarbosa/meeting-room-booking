@@ -13,7 +13,8 @@ export type ErrorCode =
   | "NOT_FOUND"
   | "FORBIDDEN"
   | "ALREADY_CANCELLED"
-  | "ALREADY_STARTED";
+  | "ALREADY_STARTED"
+  | "NAME_TAKEN";
 
 export class DomainError extends Error {
   constructor(

@@ -5,7 +5,7 @@ export function getNavLinks(isAdmin: boolean): NavLink[] {
     { href: "/rooms", label: "Salas" },
     { href: "/me/reservations", label: "Minhas reservas" },
   ];
-  return isAdmin ? [...links, { href: "/admin", label: "Admin" }] : links;
+  return isAdmin ? [...links, { href: "/admin/rooms", label: "Admin" }] : links;
 }
 
 export function isActivePath(pathname: string, href: string): boolean {

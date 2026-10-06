@@ -1,4 +1,4 @@
-import { MapPin, Users } from "lucide-react";
+import { Clock, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import { FeatureIcon } from "@/components/rooms/feature-icon";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { RoomListItem } from "@/domain/room";
+import { formatDuration } from "@/lib/format-duration";
 
 export function RoomCard({ room }: { room: RoomListItem }) {
   return (
@@ -38,6 +39,15 @@ export function RoomCard({ room }: { room: RoomListItem }) {
               <dd>{room.location}</dd>
             </div>
           )}
+          <div className="flex items-center gap-2">
+            <dt>
+              <Clock aria-hidden="true" className="size-4" />
+              <span className="sr-only">Duração máxima</span>
+            </dt>
+            <dd className="tabular-nums">
+              Reservas de até {formatDuration(room.maxBookingMinutes)}
+            </dd>
+          </div>
         </dl>
         {room.features.length > 0 && (
           <ul aria-label="Recursos" className="flex flex-wrap gap-1.5">

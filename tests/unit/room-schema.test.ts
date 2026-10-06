@@ -8,6 +8,7 @@ const valid = {
   description: "",
   features: ["tv"],
   isActive: true,
+  maxBookingMinutes: "240",
 };
 
 describe("roomSchema", () => {
@@ -19,6 +20,7 @@ describe("roomSchema", () => {
       description: null,
       features: ["tv"],
       isActive: true,
+      maxBookingMinutes: 240,
     });
   });
 
@@ -38,5 +40,23 @@ describe("roomSchema", () => {
     expect(roomSchema.parse({ ...valid, name: "  Sala Nova  " }).name).toBe(
       "Sala Nova",
     );
+  });
+
+  it.each(["14", "721", "60.5", "abc", ""])(
+    "rejects maximum booking minutes %j",
+    (maxBookingMinutes) => {
+      expect(
+        roomSchema.safeParse({ ...valid, maxBookingMinutes }).success,
+      ).toBe(false);
+    },
+  );
+
+  it.each([
+    ["15", 15],
+    ["720", 720],
+  ])("accepts maximum booking minutes %j", (maxBookingMinutes, expected) => {
+    expect(
+      roomSchema.parse({ ...valid, maxBookingMinutes }).maxBookingMinutes,
+    ).toBe(expected);
   });
 });

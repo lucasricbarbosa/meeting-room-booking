@@ -7,16 +7,24 @@ import { RoomFeaturesField } from "@/components/admin/room-features-field";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import type { FeatureSummary, RoomDetails } from "@/domain/room";
 import type { ActionResult } from "@/lib/action-result";
+import { formatDuration } from "@/lib/format-duration";
 import {
   ROOM_CAPACITY_MIN,
   ROOM_DESCRIPTION_MAX,
   ROOM_LOCATION_MAX,
+  ROOM_MAX_BOOKING_MAX,
+  ROOM_MAX_BOOKING_MIN,
   ROOM_NAME_MAX,
 } from "@/schemas/room";
 
@@ -39,6 +47,10 @@ export function RoomForm({ action, features, room }: RoomFormProps) {
   const [description, setDescription] = useState(room?.description ?? "");
   const [featureSlugs, setFeatureSlugs] = useState(room?.featureSlugs ?? []);
   const [isActive, setIsActive] = useState(room?.isActive ?? true);
+  // A new room starts with the same 240 min the database uses as default.
+  const [maxBookingMinutes, setMaxBookingMinutes] = useState(
+    String(room?.maxBookingMinutes ?? 240),
+  );
 
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
   function errorsFor(field: string) {
@@ -102,6 +114,32 @@ export function RoomForm({ action, features, room }: RoomFormProps) {
           <FieldError errors={errorsFor("location")} />
         </Field>
       </div>
+
+      <Field data-invalid={Boolean(errorsFor("maxBookingMinutes"))}>
+        <FieldLabel htmlFor="maxBookingMinutes">
+          Duração máxima por reserva (min)
+        </FieldLabel>
+        <Input
+          id="maxBookingMinutes"
+          name="maxBookingMinutes"
+          type="number"
+          inputMode="numeric"
+          value={maxBookingMinutes}
+          onChange={(event) => setMaxBookingMinutes(event.target.value)}
+          required
+          min={ROOM_MAX_BOOKING_MIN}
+          max={ROOM_MAX_BOOKING_MAX}
+          step={1}
+          className="tabular-nums sm:max-w-40"
+          aria-invalid={Boolean(errorsFor("maxBookingMinutes"))}
+          aria-describedby="maxBookingMinutes-help"
+        />
+        <FieldDescription id="maxBookingMinutes-help">
+          Entre {formatDuration(ROOM_MAX_BOOKING_MIN)} e{" "}
+          {formatDuration(ROOM_MAX_BOOKING_MAX)}.
+        </FieldDescription>
+        <FieldError errors={errorsFor("maxBookingMinutes")} />
+      </Field>
 
       <Field data-invalid={Boolean(errorsFor("description"))}>
         <FieldLabel htmlFor="description">Descrição (opcional)</FieldLabel>

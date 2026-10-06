@@ -29,6 +29,7 @@ const rooms = [
   {
     name: "Sala Foco",
     capacity: 4,
+    maxBookingMinutes: 60,
     location: "2º andar",
     description: "Sala pequena para conversas rápidas e 1:1.",
     features: ["tv", "whiteboard"],
@@ -36,6 +37,7 @@ const rooms = [
   {
     name: "Sala Ideias",
     capacity: 6,
+    maxBookingMinutes: 120,
     location: "2º andar",
     description: "Paredes de quadro branco para brainstorming.",
     features: ["whiteboard"],
@@ -43,6 +45,7 @@ const rooms = [
   {
     name: "Sala Paulista",
     capacity: 8,
+    maxBookingMinutes: 240,
     location: "3º andar",
     description: null,
     features: ["tv", "videoconf"],
@@ -50,6 +53,7 @@ const rooms = [
   {
     name: "Sala Pinheiros",
     capacity: 10,
+    maxBookingMinutes: 240,
     location: "3º andar",
     description: "Ideal para reuniões híbridas.",
     features: ["projector", "videoconf", "whiteboard"],
@@ -57,6 +61,7 @@ const rooms = [
   {
     name: "Sala Conselho",
     capacity: 12,
+    maxBookingMinutes: 480,
     location: "4º andar",
     description: "Mesa única para reuniões de diretoria.",
     features: ["projector", "videoconf", "tv"],
@@ -64,6 +69,7 @@ const rooms = [
   {
     name: "Auditório",
     capacity: 20,
+    maxBookingMinutes: 480,
     location: "Térreo",
     description: "Apresentações e eventos internos.",
     features: ["projector", "videoconf"],

@@ -28,7 +28,7 @@ export async function createReservation(
     return await prisma.$transaction(async (tx) => {
       const room = await tx.room.findUnique({
         where: { id: input.roomId },
-        select: { isActive: true },
+        select: { isActive: true, maxBookingMinutes: true },
       });
       if (!room) {
         throw new DomainError("ROOM_NOT_FOUND", "Sala não encontrada.");
@@ -40,7 +40,10 @@ export async function createReservation(
         );
       }
 
-      validateReservation(input, { now });
+      validateReservation(input, {
+        now,
+        maxBookingMinutes: room.maxBookingMinutes,
+      });
 
       // Same condition as overlaps() in domain/, written as a query.
       const conflict = await tx.reservation.findFirst({

@@ -27,8 +27,10 @@ function errorCodeOf(fn: () => void): string | undefined {
   return undefined;
 }
 
-function validate(range: TimeRange) {
-  return errorCodeOf(() => validateReservation(range, { now }));
+function validate(range: TimeRange, maxBookingMinutes = 240) {
+  return errorCodeOf(() =>
+    validateReservation(range, { now, maxBookingMinutes }),
+  );
 }
 
 describe("validateReservation", () => {
@@ -58,6 +60,34 @@ describe("validateReservation", () => {
 
   it("rejects 241 minutes", () => {
     expect(validate(rangeFromNow(60, 241))).toBe("DURATION_TOO_LONG");
+  });
+});
+
+// now is Wednesday 10:00 in São Paulo, so every range below falls on a weekday between 09:00 and 18:00.
+describe("validateReservation with the room's maximum duration", () => {
+  it("rejects 61 minutes in a room limited to 60", () => {
+    expect(validate(rangeFromNow(60, 61), 60)).toBe("DURATION_TOO_LONG");
+  });
+
+  it("accepts 60 minutes in a room limited to 60", () => {
+    expect(validate(rangeFromNow(60, 60), 60)).toBeUndefined();
+  });
+
+  it("accepts 120 minutes in a room limited to 240", () => {
+    expect(validate(rangeFromNow(60, 120), 240)).toBeUndefined();
+  });
+
+  it("still rejects 14 minutes in a room limited to 60", () => {
+    expect(validate(rangeFromNow(60, 14), 60)).toBe("DURATION_TOO_SHORT");
+  });
+
+  it("cites the room's limit in the message", () => {
+    expect(() =>
+      validateReservation(rangeFromNow(60, 90), {
+        now,
+        maxBookingMinutes: 60,
+      }),
+    ).toThrow("Esta sala permite reservas de até 1 h.");
   });
 });
 

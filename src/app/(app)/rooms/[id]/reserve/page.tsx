@@ -1,4 +1,4 @@
-import { ArrowLeft, MapPin, Users } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,6 +6,7 @@ import { ReservationForm } from "@/components/reservations/reservation-form";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { utcToBusiness } from "@/domain/time";
+import { formatDuration } from "@/lib/format-duration";
 import { createReservationSchema } from "@/schemas/reservation";
 import { requireUser } from "@/server/auth";
 import { BUSINESS_TIMEZONE } from "@/server/env";
@@ -62,6 +63,10 @@ export default async function ReserveRoomPage({
               {room.location}
             </span>
           )}
+          <span className="flex items-center gap-1.5 tabular-nums">
+            <Clock aria-hidden="true" className="size-4" />
+            Reservas de até {formatDuration(room.maxBookingMinutes)}
+          </span>
         </p>
       </div>
 

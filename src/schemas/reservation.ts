@@ -18,3 +18,7 @@ export const createReservationSchema = z.object({
     .transform((title) => title || undefined)
     .optional(),
 });
+
+export const cancelReservationSchema = z.object({
+  reservationId: z.cuid({ error: "Reserva inválida." }),
+});

@@ -44,3 +44,12 @@ export function formatTimeRange(range: TimeRange, timeZone: string): string {
   const end = utcToBusiness(range.endsAt, timeZone).time;
   return `${start}–${end}`;
 }
+
+// The day comes from the start: a booking that crosses midnight is listed under the day it begins.
+export function formatReservationRange(
+  range: TimeRange,
+  timeZone: string,
+): string {
+  const day = formatBusinessDay(utcToBusiness(range.startsAt, timeZone).date);
+  return `${day} · ${formatTimeRange(range, timeZone)}`;
+}

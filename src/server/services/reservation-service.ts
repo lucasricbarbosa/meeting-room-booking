@@ -1,7 +1,10 @@
 import "server-only";
 import { DomainError } from "@/domain/errors";
-import type { OccupiedSlot } from "@/domain/reservation";
-import { validateReservation } from "@/domain/reservation-rules";
+import type { OccupiedSlot, UserReservation } from "@/domain/reservation";
+import {
+  validateCancellation,
+  validateReservation,
+} from "@/domain/reservation-rules";
 import { getBusinessDayRange, utcToBusiness } from "@/domain/time";
 import type { UserSummary } from "@/domain/user";
 import { prisma } from "@/server/db";
@@ -98,6 +101,86 @@ export function listDayReservations(
     select: { id: true, startsAt: true, endsAt: true },
     orderBy: { startsAt: "asc" },
   });
+}
+
+export async function cancelReservation(
+  user: UserSummary,
+  reservationId: string,
+  now: Date,
+): Promise<void> {
+  try {
+    // Read and update in one transaction, so two concurrent cancels cannot both pass the ACTIVE check.
+    await prisma.$transaction(async (tx) => {
+      const reservation = await tx.reservation.findUnique({
+        where: { id: reservationId },
+        select: { userId: true, status: true, startsAt: true },
+      });
+      if (!reservation) {
+        throw new DomainError("NOT_FOUND", "Reserva não encontrada.");
+      }
+
+      validateCancellation(reservation, { userId: user.id, now });
+
+      // Soft cancel: the row stays as history and stops blocking the slot.
+      await tx.reservation.update({
+        where: { id: reservationId },
+        data: { status: "CANCELLED", cancelledAt: now },
+      });
+    });
+  } catch (error) {
+    if (isConcurrencyError(error)) {
+      throw new DomainError(
+        "TRY_AGAIN",
+        "A reserva foi alterada ao mesmo tempo. Tente novamente.",
+      );
+    }
+    throw error;
+  }
+}
+
+const userReservationSelect = {
+  id: true,
+  title: true,
+  startsAt: true,
+  endsAt: true,
+  status: true,
+  room: { select: { name: true } },
+} as const;
+
+const PAST_RESERVATIONS_LIMIT = 20;
+
+// "Upcoming" means not finished yet, so a meeting in progress is still listed there.
+export async function listUserReservations(
+  userId: string,
+  now: Date,
+): Promise<{ upcoming: UserReservation[]; past: UserReservation[] }> {
+  const [upcoming, past] = await Promise.all([
+    prisma.reservation.findMany({
+      where: { userId, endsAt: { gt: now } },
+      select: userReservationSelect,
+      orderBy: { startsAt: "asc" },
+    }),
+    prisma.reservation.findMany({
+      where: { userId, endsAt: { lte: now } },
+      select: userReservationSelect,
+      orderBy: { startsAt: "desc" },
+      take: PAST_RESERVATIONS_LIMIT,
+    }),
+  ]);
+
+  return {
+    upcoming: upcoming.map(toUserReservation),
+    past: past.map(toUserReservation),
+  };
+}
+
+function toUserReservation({
+  room,
+  ...reservation
+}: Prisma.ReservationGetPayload<{
+  select: typeof userReservationSelect;
+}>): UserReservation {
+  return { ...reservation, roomName: room.name };
 }
 
 // P1008: the SQLite adapter maps SQLITE_BUSY to it. P2034: Prisma's write conflict.

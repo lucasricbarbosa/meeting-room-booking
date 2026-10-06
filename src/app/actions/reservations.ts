@@ -6,10 +6,16 @@ import { z } from "zod";
 import { DomainError } from "@/domain/errors";
 import { businessToUtc } from "@/domain/time";
 import type { ActionResult } from "@/lib/action-result";
-import { createReservationSchema } from "@/schemas/reservation";
+import {
+  cancelReservationSchema,
+  createReservationSchema,
+} from "@/schemas/reservation";
 import { requireUser } from "@/server/auth";
 import { BUSINESS_TIMEZONE } from "@/server/env";
-import { createReservation } from "@/server/services/reservation-service";
+import {
+  cancelReservation,
+  createReservation,
+} from "@/server/services/reservation-service";
 
 export async function createReservationAction(
   _previous: ActionResult | null,
@@ -69,4 +75,49 @@ export async function createReservationAction(
   // Outside the try: redirect() works by throwing, and the catch would swallow it.
   // The destination page reads created=1 to show the success toast.
   redirect("/me/reservations?created=1");
+}
+
+export async function cancelReservationAction(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const user = await requireUser();
+
+  const parsed = cancelReservationSchema.safeParse({
+    reservationId: formData.get("reservationId"),
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      code: "VALIDATION_ERROR",
+      message: "Reserva inválida. Recarregue a página.",
+    };
+  }
+
+  try {
+    // Ownership is checked in the service against the session user, never against anything in the form.
+    await cancelReservation(user, parsed.data.reservationId, new Date());
+  } catch (error) {
+    if (error instanceof DomainError) {
+      return { ok: false, code: error.code, message: error.message };
+    }
+    console.error(
+      JSON.stringify({
+        action: "cancelReservation",
+        userId: user.id,
+        code: "INTERNAL_ERROR",
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
+    return {
+      ok: false,
+      code: "INTERNAL_ERROR",
+      message: "Não foi possível cancelar a reserva. Tente novamente.",
+    };
+  }
+
+  revalidatePath("/me/reservations");
+  // The freed slot must disappear from the occupancy of whichever room it was in.
+  revalidatePath("/rooms/[id]/reserve", "page");
+  return { ok: true, data: undefined };
 }

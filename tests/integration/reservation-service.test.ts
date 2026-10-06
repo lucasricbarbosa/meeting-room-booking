@@ -150,6 +150,13 @@ describe("createReservation", () => {
       ),
     ).rejects.toMatchObject({ code: "IN_THE_PAST" });
   });
+
+  it("applies the business-hours rule", async () => {
+    await expect(book("19:30", "20:15")).rejects.toMatchObject({
+      code: "OUTSIDE_BUSINESS_HOURS",
+    });
+    expect(await prisma.reservation.count()).toBe(0);
+  });
 });
 
 describe("listDayReservations", () => {

@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { UserSummary } from "@/domain/user";
 import { prisma } from "@/server/db";
-import { createReservation } from "@/server/services/reservation-service";
+import {
+  createReservation,
+  listDayReservations,
+} from "@/server/services/reservation-service";
 import { resetDatabase } from "../helpers/db";
 
 // Business time zone is America/Sao_Paulo (UTC-3): 13:00Z is 10:00 local.
@@ -144,5 +147,50 @@ describe("createReservation", () => {
         now,
       ),
     ).rejects.toMatchObject({ code: "IN_THE_PAST" });
+  });
+});
+
+describe("listDayReservations", () => {
+  async function insert(
+    startsAt: Date,
+    endsAt: Date,
+    data: { roomId?: string; status?: "ACTIVE" | "CANCELLED" } = {},
+  ) {
+    return prisma.reservation.create({
+      data: {
+        roomId: data.roomId ?? roomId,
+        userId: owner.id,
+        title: "Planejamento",
+        startsAt,
+        endsAt,
+        status: data.status ?? "ACTIVE",
+      },
+    });
+  }
+
+  it("returns only the times of the room's active reservations on that business day", async () => {
+    const late = await insert(at("22:30"), at("23:30"));
+    const morning = await insert(at("09:00"), at("10:00"));
+    await insert(at("11:00"), at("12:00"), { status: "CANCELLED" });
+    const otherRoom = await prisma.room.create({
+      data: { name: "Sala B", capacity: 4 },
+    });
+    await insert(at("09:00"), at("10:00"), { roomId: otherRoom.id });
+    await insert(
+      new Date("2026-10-07T09:00:00-03:00"),
+      new Date("2026-10-07T10:00:00-03:00"),
+    );
+    await insert(
+      new Date("2026-10-09T00:00:00-03:00"),
+      new Date("2026-10-09T01:00:00-03:00"),
+    );
+
+    const slots = await listDayReservations(roomId, "2026-10-08");
+
+    // Exact shape on purpose: owner or title in this result would leak to other users.
+    expect(slots).toEqual([
+      { id: morning.id, startsAt: at("09:00"), endsAt: at("10:00") },
+      { id: late.id, startsAt: at("22:30"), endsAt: at("23:30") },
+    ]);
   });
 });

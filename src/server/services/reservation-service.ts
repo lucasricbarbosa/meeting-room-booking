@@ -1,7 +1,8 @@
 import "server-only";
 import { DomainError } from "@/domain/errors";
+import type { OccupiedSlot } from "@/domain/reservation";
 import { validateReservation } from "@/domain/reservation-rules";
-import { utcToBusiness } from "@/domain/time";
+import { getBusinessDayRange, utcToBusiness } from "@/domain/time";
 import type { UserSummary } from "@/domain/user";
 import { prisma } from "@/server/db";
 import { BUSINESS_TIMEZONE } from "@/server/env";
@@ -78,6 +79,25 @@ export async function createReservation(
     }
     throw error;
   }
+}
+
+// Any reservation that touches the business day, including one that starts the day before.
+export function listDayReservations(
+  roomId: string,
+  date: string,
+): Promise<OccupiedSlot[]> {
+  const day = getBusinessDayRange(date, BUSINESS_TIMEZONE);
+  return prisma.reservation.findMany({
+    where: {
+      roomId,
+      status: "ACTIVE",
+      startsAt: { lt: day.endsAt },
+      endsAt: { gt: day.startsAt },
+    },
+    // No userId or title: this list is shown to every user.
+    select: { id: true, startsAt: true, endsAt: true },
+    orderBy: { startsAt: "asc" },
+  });
 }
 
 // P1008: the SQLite adapter maps SQLITE_BUSY to it. P2034: Prisma's write conflict.

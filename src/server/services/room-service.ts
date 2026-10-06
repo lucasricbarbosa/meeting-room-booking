@@ -34,6 +34,13 @@ export async function listRooms(filters: RoomFilters): Promise<RoomListItem[]> {
   }));
 }
 
+export function getActiveRoom(id: string) {
+  return prisma.room.findFirst({
+    where: { id, isActive: true },
+    select: { id: true, name: true, capacity: true, location: true },
+  });
+}
+
 export function listFeatures(): Promise<FeatureSummary[]> {
   return prisma.feature.findMany({
     select: featureSummarySelect,

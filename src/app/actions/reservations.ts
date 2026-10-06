@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { DomainError } from "@/domain/errors";
 import { businessToUtc } from "@/domain/time";
@@ -11,9 +12,9 @@ import { BUSINESS_TIMEZONE } from "@/server/env";
 import { createReservation } from "@/server/services/reservation-service";
 
 export async function createReservationAction(
-  _previous: ActionResult<{ id: string }> | null,
+  _previous: ActionResult | null,
   formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult> {
   const user = await requireUser();
 
   const parsed = createReservationSchema.safeParse({
@@ -34,7 +35,7 @@ export async function createReservationAction(
 
   const { roomId, date, startTime, endTime, title } = parsed.data;
   try {
-    const reservation = await createReservation(
+    await createReservation(
       user,
       {
         roomId,
@@ -44,9 +45,6 @@ export async function createReservationAction(
       },
       new Date(),
     );
-    revalidatePath(`/rooms/${roomId}/reserve`);
-    revalidatePath("/me/reservations");
-    return { ok: true, data: reservation };
   } catch (error) {
     if (error instanceof DomainError) {
       return { ok: false, code: error.code, message: error.message };
@@ -65,4 +63,10 @@ export async function createReservationAction(
       message: "Não foi possível criar a reserva. Tente novamente.",
     };
   }
+
+  revalidatePath(`/rooms/${roomId}/reserve`);
+  revalidatePath("/me/reservations");
+  // Outside the try: redirect() works by throwing, and the catch would swallow it.
+  // The destination page reads created=1 to show the success toast.
+  redirect("/me/reservations?created=1");
 }

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/server/db";
-import { listRooms } from "@/server/services/room-service";
+import { getActiveRoom, listRooms } from "@/server/services/room-service";
 import { resetDatabase } from "../helpers/db";
 
 async function createRoom(data: {
@@ -93,5 +93,32 @@ describe("listRooms", () => {
     expect(
       namesOf(await listRooms({ minCapacity: 10, features: ["tv"] })),
     ).toEqual(["Ativa"]);
+  });
+});
+
+describe("getActiveRoom", () => {
+  it("returns an active room", async () => {
+    const room = await createRoom({ name: "Sala A", capacity: 4 });
+
+    expect(await getActiveRoom(room.id)).toEqual({
+      id: room.id,
+      name: "Sala A",
+      capacity: 4,
+      location: null,
+    });
+  });
+
+  it("returns null for an inactive room", async () => {
+    const room = await createRoom({
+      name: "Sala A",
+      capacity: 4,
+      isActive: false,
+    });
+
+    expect(await getActiveRoom(room.id)).toBeNull();
+  });
+
+  it("returns null for a room that does not exist", async () => {
+    expect(await getActiveRoom("missing-room")).toBeNull();
   });
 });

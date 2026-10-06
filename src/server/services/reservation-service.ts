@@ -40,7 +40,7 @@ export async function createReservation(
         );
       }
 
-      validateReservation(input, { now });
+      validateReservation(input, { now, timeZone: BUSINESS_TIMEZONE });
 
       // Same condition as overlaps() in domain/, written as a query.
       const conflict = await tx.reservation.findFirst({

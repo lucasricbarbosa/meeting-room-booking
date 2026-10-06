@@ -66,6 +66,7 @@ function parseRoomForm(formData: FormData) {
     features: formData.getAll("features"),
     // An unchecked checkbox is simply absent from the form data.
     isActive: formData.get("isActive") === "on",
+    maxBookingMinutes: formData.get("maxBookingMinutes"),
   });
 }
 

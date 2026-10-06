@@ -13,6 +13,7 @@ export type RoomListItem = {
   name: string;
   capacity: number;
   location: string | null;
+  maxBookingMinutes: number;
   features: FeatureSummary[];
 };
 
@@ -25,5 +26,6 @@ export type RoomDetails = {
   location: string | null;
   description: string | null;
   isActive: boolean;
+  maxBookingMinutes: number;
   featureSlugs: string[];
 };

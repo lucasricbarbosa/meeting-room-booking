@@ -55,6 +55,7 @@ describe("listRooms", () => {
       expect.objectContaining({
         name: "Sala A",
         capacity: 4,
+        maxBookingMinutes: 240,
         features: [{ slug: "tv", name: "TV" }],
       }),
       expect.objectContaining({ name: "Sala B", capacity: 8, features: [] }),
@@ -115,6 +116,7 @@ describe("getActiveRoom", () => {
       name: "Sala A",
       capacity: 4,
       location: null,
+      maxBookingMinutes: 240,
     });
   });
 
@@ -145,6 +147,7 @@ describe("room administration", () => {
     description: null,
     features: ["tv"],
     isActive: true,
+    maxBookingMinutes: 120,
     ...overrides,
   });
 
@@ -180,6 +183,7 @@ describe("room administration", () => {
         location: "5º andar",
         description: null,
         isActive: true,
+        maxBookingMinutes: 120,
         featureSlugs: ["projector", "tv"],
       });
     });
@@ -228,6 +232,7 @@ describe("room administration", () => {
           capacity: 10,
           description: "Renovada",
           features: ["projector"],
+          maxBookingMinutes: 90,
         }),
       );
 
@@ -238,6 +243,7 @@ describe("room administration", () => {
         location: "5º andar",
         description: "Renovada",
         isActive: true,
+        maxBookingMinutes: 90,
         featureSlugs: ["projector"],
       });
     });

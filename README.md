@@ -30,6 +30,8 @@ Outros scripts: `npm run lint`, `npm run typecheck`, `npm test`, `npm run format
 - **SALA-2:** reserva de sala com a ocupação do dia e aviso de conflito antes do envio.
 - **SALA-3:** "Minhas reservas" (próximas e anteriores) e cancelamento das próprias reservas.
 - **SALA-4:** admin de salas: listar todas, criar, editar e desativar.
+- **SALA-5:** reservas só de segunda a sexta, entre 08:00 e 20:00 no fuso de negócio (`NOT_A_BUSINESS_DAY`, `OUTSIDE_BUSINESS_HOURS`). A tela de reserva oferece só horários dentro da janela e avisa quando a data cai no fim de semana.
+- **SALA-6:** duração máxima por sala, editada no admin (15 min a 12 h) e exibida no card e na tela de reserva. Acima do limite da sala: `DURATION_TOO_LONG`.
 
 ## Stack e por quê
 
@@ -77,7 +79,7 @@ Criar uma reserva, nesta ordem, dentro da mesma transação:
 1. A sala existe e está ativa: `ROOM_NOT_FOUND`, `ROOM_INACTIVE`.
 2. O término é depois do início: `INVALID_RANGE`.
 3. O início não está no passado (`startsAt < now`): `IN_THE_PAST`.
-4. A duração fica entre 15 e 240 minutos, em minutos exatos: `DURATION_TOO_SHORT`, `DURATION_TOO_LONG`.
+4. A duração tem pelo menos 15 minutos e no máximo o limite da sala (`maxBookingMinutes`, de 15 a 720, padrão 240), em minutos exatos: `DURATION_TOO_SHORT`, `DURATION_TOO_LONG`. A mensagem cita o limite da sala.
    - **4b.** Só de segunda a sexta (`NOT_A_BUSINESS_DAY`), com início a partir de 08:00 e término até 20:00 do mesmo dia (`OUTSIDE_BUSINESS_HOURS`). Terminar às 20:00 em ponto é permitido. Tudo é avaliado no fuso de negócio, nunca no fuso do processo. Feriados ficam fora do escopo.
 5. Não há sobreposição com reservas ativas da mesma sala, com intervalos semiabertos `[início, fim)`. Reservas encostadas (09–10 e 10–11) são permitidas, e canceladas não bloqueiam: `ROOM_CONFLICT`. A mensagem mostra o horário ocupado, nunca quem reservou.
 6. Falha de concorrência do SQLite durante a transação: `TRY_AGAIN`.
@@ -135,11 +137,11 @@ Resumo das decisões tomadas onde o enunciado deixa margem. A lista completa, co
 npm test
 ```
 
-- **Regras de domínio** (`tests/unit/reservation-rules.test.ts`): intervalo inválido, início no passado, limites de 15 e 240 minutos, fim de semana e horário fora de 08:00–20:00 (inclusive uma sexta 19:30–20:00 em São Paulo, que é 22:30 em UTC), e `overlaps` em todos os casos (parcial no início e no fim, contido, englobando, encostado antes e depois).
-- **Sobreposição contra o banco** (`tests/integration/reservation-service.test.ts`): conflitos rejeitados, reserva encostada aceita, cancelada não bloqueia, sala inativa rejeitada, horário comercial aplicado na criação, e a mensagem de conflito sem o dono.
+- **Regras de domínio** (`tests/unit/reservation-rules.test.ts`): intervalo inválido, início no passado, duração mínima de 15 minutos e máxima pelo limite de cada sala, fim de semana e horário fora de 08:00–20:00 (inclusive uma sexta 19:30–20:00 em São Paulo, que é 22:30 em UTC), e `overlaps` em todos os casos (parcial no início e no fim, contido, englobando, encostado antes e depois).
+- **Sobreposição contra o banco** (`tests/integration/reservation-service.test.ts`): conflitos rejeitados, reserva encostada aceita, cancelada não bloqueia, sala inativa rejeitada, limite de duração da sala e horário comercial aplicados na criação, e a mensagem de conflito sem o dono.
 - **Permissão de cancelamento:** o dono cancela; outro usuário e o admin recebem `FORBIDDEN`, e a reserva continua ativa; reserva cancelada ou já iniciada é rejeitada.
 - **Admin de salas** (`tests/integration/room-service.test.ts`): usuário comum recebe `FORBIDDEN` ao criar e ao editar, e nada muda no banco; nome duplicado gera `NAME_TAKEN`; sala desativada some da listagem.
-- **Fuso, filtros e schemas:** conversões entre o fuso de negócio e UTC, leitura dos filtros da URL e validação do formulário de sala.
+- **Fuso, filtros e schemas:** conversões entre o fuso de negócio e UTC, leitura dos filtros da URL, validação do formulário de sala (inclusive a duração máxima de 15 a 720 min) e exibição da duração (`1 h 30 min`).
 
 Os testes de integração usam um SQLite real (`test.db`), criado pelas mesmas migrations da aplicação e limpo entre os testes. O Prisma não é mockado, e `now` é sempre injetado.
 
@@ -176,7 +178,15 @@ flowchart LR
 
 Todo merge passa por pull request, com merge commit (sem squash nem rebase), para que `main` e `develop` compartilhem os commits de release e hotfix. As mensagens seguem Conventional Commits (`feat`, `fix`, `test`, `chore`, `ci`, `docs`).
 
-<!-- histórico de releases será completado na 1.1.0 -->
+Histórico de releases:
+
+| Versão | Data       | Conteúdo                                      | Caminho                                                                                      |
+| ------ | ---------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 1.0.0  | 2026-10-05 | SALA-1 a SALA-4, health check, CI e README    | `release/1.0.0` → `main` (PR #7) e → `develop` (PR #8); tag `v1.0.0`                         |
+| 1.0.1  | 2026-10-06 | Hotfix SALA-5: dias úteis e horário comercial | `hotfix/1.0.1-horario-comercial` a partir de `main` → `main` (PR #10) e → `develop` (PR #11) |
+| 1.1.0  | 2026-10-06 | SALA-6: duração máxima por sala               | `feature/SALA-6-duracao-por-sala` → `develop` (PR #9); `release/1.1.0` → `main`              |
+
+**Conflito SALA-5 × SALA-6.** O hotfix saiu de `main`, que ainda não tinha a SALA-6, enquanto a SALA-6 já estava em `develop` (PR #9). As duas mexeram nas mesmas linhas de `reservation-rules.ts`, `reservation-service.ts`, dos testes e da documentação. O hotfix entrou primeiro em `main` (PR #10); para levá-lo a `develop`, `develop` foi mesclada na branch do hotfix e os conflitos foram resolvidos lá (commit `0e1a007`), e o PR #11 trouxe o resultado. O conflito que importa é semântico: cada branch acrescentou um campo obrigatório ao `ReservationContext` (`timeZone` na SALA-5, `maxBookingMinutes` na SALA-6). Manter os dois lados do texto não basta: o tipo precisa ter os dois campos, e toda chamada de `validateReservation` (o serviço e os testes de cada branch) precisa passar os dois. Quanto às regras, a duração (passo 4) é checada antes do horário comercial (4b): uma reserva que viola as duas recebe `DURATION_TOO_LONG`. E o limite máximo de 720 min equivale à janela inteira de 08:00 a 20:00, então só cabe uma reserva desse tamanho começando às 08:00.
 
 ## O que ficou de fora e por quê
 

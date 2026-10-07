@@ -30,6 +30,7 @@ export async function listRooms(filters: RoomFilters): Promise<RoomListItem[]> {
       name: true,
       capacity: true,
       location: true,
+      maxBookingMinutes: true,
       features: {
         select: { feature: { select: featureSummarySelect } },
         orderBy: { feature: { name: "asc" } },
@@ -47,7 +48,13 @@ export async function listRooms(filters: RoomFilters): Promise<RoomListItem[]> {
 export function getActiveRoom(id: string) {
   return prisma.room.findFirst({
     where: { id, isActive: true },
-    select: { id: true, name: true, capacity: true, location: true },
+    select: {
+      id: true,
+      name: true,
+      capacity: true,
+      location: true,
+      maxBookingMinutes: true,
+    },
   });
 }
 
@@ -67,6 +74,7 @@ export async function listAllRooms(): Promise<AdminRoomListItem[]> {
       capacity: true,
       location: true,
       isActive: true,
+      maxBookingMinutes: true,
       features: {
         select: { feature: { select: featureSummarySelect } },
         orderBy: { feature: { name: "asc" } },
@@ -91,6 +99,7 @@ export async function getRoomDetails(id: string): Promise<RoomDetails | null> {
       location: true,
       description: true,
       isActive: true,
+      maxBookingMinutes: true,
       features: {
         select: { feature: { select: { slug: true } } },
         orderBy: { feature: { slug: "asc" } },

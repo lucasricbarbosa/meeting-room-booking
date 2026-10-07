@@ -1,17 +1,21 @@
 import { isWeekend, parse } from "date-fns";
+import { formatDuration } from "@/lib/format-duration";
 import { DomainError } from "./errors";
 import type { ReservationStatus } from "./reservation";
 import { businessToUtc, utcToBusiness } from "./time";
 
 export const MIN_DURATION_MINUTES = 15;
-export const MAX_DURATION_MINUTES = 240;
 export const OPENING_TIME = "08:00";
 export const CLOSING_TIME = "20:00";
 export const NOT_A_BUSINESS_DAY_MESSAGE =
   "Reservas só podem ser feitas de segunda a sexta.";
 
 export type TimeRange = { startsAt: Date; endsAt: Date };
-export type ReservationContext = { now: Date; timeZone: string };
+export type ReservationContext = {
+  now: Date;
+  timeZone: string;
+  maxBookingMinutes: number;
+};
 
 // Half-open intervals [start, end): back-to-back ranges (09–10 and 10–11) do not overlap.
 export function overlaps(a: TimeRange, b: TimeRange): boolean {
@@ -39,7 +43,10 @@ export function validateNotInPast(
   }
 }
 
-export function validateDuration(input: TimeRange): void {
+export function validateDuration(
+  input: TimeRange,
+  ctx: ReservationContext,
+): void {
   // Exact minutes on purpose: differenceInMinutes truncates, so 240 min 30 s would pass as 240.
   const minutes = (input.endsAt.getTime() - input.startsAt.getTime()) / 60_000;
   if (minutes < MIN_DURATION_MINUTES) {
@@ -48,10 +55,10 @@ export function validateDuration(input: TimeRange): void {
       `A reserva precisa ter pelo menos ${MIN_DURATION_MINUTES} minutos.`,
     );
   }
-  if (minutes > MAX_DURATION_MINUTES) {
+  if (minutes > ctx.maxBookingMinutes) {
     throw new DomainError(
       "DURATION_TOO_LONG",
-      `A reserva pode ter no máximo ${MAX_DURATION_MINUTES / 60} horas.`,
+      `Esta sala permite reservas de até ${formatDuration(ctx.maxBookingMinutes)}.`,
     );
   }
 }

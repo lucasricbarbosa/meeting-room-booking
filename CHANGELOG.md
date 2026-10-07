@@ -6,6 +6,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-06
+
 ### Added
 
 - Duração máxima de reserva por sala, de 15 min a 12 h, editável no admin e exibida no card e na tela de reserva (SALA-6).
